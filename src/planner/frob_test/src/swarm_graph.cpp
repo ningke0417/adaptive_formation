@@ -26,8 +26,10 @@ bool SwarmGraph::updateGraph( const std::vector<Eigen::Vector3d> &swarm )
             agent_grad_.push_back( gradp );
             agent_grad_org_.push_back( gradp_org );
         }
+        return true;
     }else{
         ROS_WARN( "Please enter the desired formation!!" );
+        return false;
     }
 }
 
@@ -49,8 +51,10 @@ bool SwarmGraph::updatePartGraphAndGetGrad( const int idx, const std::vector<Eig
         //Only update the gradient vector of local uav 
         Eigen::Vector3d gradp_org;
         calcFGrad(gradp, gradp_org, idx);
+        return true;
     }else{
         ROS_WARN( "Please enter the desired formation!!" );
+        return false;
     }
 }
 
@@ -166,6 +170,7 @@ bool SwarmGraph::calcFGrad( Eigen::Vector3d &gradp, Eigen::Vector3d &gradp_org, 
             gradp_org = Eigen::VectorXd::Zero(3);
             gradp = gradp_org;
         }
+        return true;
     }else{
         ROS_WARN( "Invalid desired formation." );
         return false;

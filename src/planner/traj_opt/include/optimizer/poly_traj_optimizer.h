@@ -434,6 +434,7 @@ private:
                                            Eigen::VectorXd &costs);
 
   /* use L-NFGS optimizer to calculate the local minimum of swarm graph */
+  bool haveValidSparseTrajectories() const;
   void setSwarmGraphInAdavanced(const Eigen::VectorXd initT);
   static double swarmGraphCostCallback(void *func_data, const double *x,
                                        double *grad, const int n);

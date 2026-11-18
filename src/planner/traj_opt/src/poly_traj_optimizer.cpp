@@ -148,45 +148,35 @@ namespace ego_planner
 
   //     }
   //   }
+  bool PolyTrajOptimizer::haveValidSparseTrajectories() const
+  {
+    if (!swarm_trajs_ || sparse_id.empty())
+      return false;
+
+    for (int id : sparse_id)
+    {
+      if (id < 0 || static_cast<size_t>(id) >= swarm_des_opt.size())
+        return false;
+      if (id == drone_id_)
+        continue;
+      if (static_cast<size_t>(id) >= swarm_trajs_->size())
+        return false;
+
+      const auto &peer = swarm_trajs_->at(id);
+      if (peer.drone_id != id || peer.traj.getPieceNum() == 0)
+        return false;
+    }
+    return true;
+  }
+
   void PolyTrajOptimizer::setSwarmGraphInAdavanced(const Eigen::VectorXd initT)
   {
     is_set_swarm_advanced_ = false;
     if (use_formation_)
     {
 
-      // int size = swarm_trajs_->size();
-      // if (drone_id_ == formation_size_all - 1)
-      //   size = formation_size_all;
-      // if (size < formation_size_all)
-      //   return;
-      // return false;
-      int size = swarm_trajs_->size();
-      if (drone_id_ == sparse_id.back() && size < drone_id_)
-        size++;
-      if (size < sparse_id.back() - 1)
+      if (!haveValidSparseTrajectories())
         return;
-      int fake_num = graph_size;
-      if (drone_id_ == sparse_id.back())
-      {
-        fake_num--;
-      }
-      if (fake_num > swarm_trajs_->size())
-      {
-        return;
-      }
-      for (int i = 0, fake_id = 0; i < fake_num; i++)
-      {
-
-        if (i == sparse_id[fake_id] && swarm_trajs_->at(i).drone_id < 0 && sparse_id[fake_id] != drone_id_)
-        {
-          return;
-        }
-
-        if (i == sparse_id[fake_id])
-        {
-          fake_id++;
-        }
-      }
       time_cps_.start_time = t_now_;
 
       // calculate the effective time duration
@@ -223,13 +213,9 @@ namespace ego_planner
         /**************************************************************************************************************/
         std::vector<Eigen::Vector3d> graph_des_opt(sparse_id.size());
 
-        for (int i = 0, fake_id = 0; i < swarm_des_opt.size(); i++)
+        for (size_t i = 0; i < sparse_id.size(); i++)
         {
-          if (i == sparse_id[fake_id])
-          {
-            graph_des_opt[fake_id] = swarm_des_opt[i];
-            fake_id++;
-          }
+          graph_des_opt[i] = swarm_des_opt[sparse_id[i]];
         }
         int debug_num = sparse_id.size() - 1;
         std::vector<int> adj_in_cline, adj_out_cline;
@@ -1098,33 +1084,8 @@ namespace ego_planner
     if (!is_set_swarm_advanced_)
       return 0.0;
 
-    int size = swarm_trajs_->size();
-    if (drone_id_ == sparse_id.back() && size < drone_id_)
-      size++;
-    if (size < sparse_id.back() - 1)
-      return false;
-    int fake_num = graph_size;
-    if (drone_id_ == sparse_id.back())
-    {
-      fake_num--;
-    }
-    if (fake_num > swarm_trajs_->size())
-    {
-      return false;
-    }
-    for (int i = 0, fake_id = 0; i < fake_num; i++)
-    {
-
-      if (i == sparse_id[fake_id] && swarm_trajs_->at(i).drone_id < 0 && sparse_id[fake_id] != drone_id_)
-      {
-        return false;
-      }
-
-      if (i == sparse_id[fake_id])
-      {
-        fake_id++;
-      }
-    }
+    if (!haveValidSparseTrajectories())
+      return 0.0;
 
     static const double step = time_cps_.sampling_time_step;
     cline_begin = false;
@@ -1144,13 +1105,9 @@ namespace ego_planner
         /**************************************************************************************************************/
         std::vector<Eigen::Vector3d> graph_des_opt(sparse_id.size());
 
-        for (int i = 0, fake_id = 0; i < swarm_des_opt.size(); i++)
+        for (size_t i = 0; i < sparse_id.size(); i++)
         {
-          if (i == sparse_id[fake_id])
-          {
-            graph_des_opt[fake_id] = swarm_des_opt[i];
-            fake_id++;
-          }
+          graph_des_opt[i] = swarm_des_opt[sparse_id[i]];
         }
         int debug_num = sparse_id.size() - 1;
         std::vector<int> adj_in_cline, adj_out_cline;
@@ -3251,34 +3208,8 @@ namespace ego_planner
   }
   bool PolyTrajOptimizer::clc_form_error(const Eigen::Vector3d &pos_mine) // false == use leader ///// true == use graph
   {
-    // return false;
-    int size = swarm_trajs_->size();
-    if (drone_id_ == sparse_id.back() && size < drone_id_)
-      size++;
-    if (size < sparse_id.back() - 1)
+    if (!haveValidSparseTrajectories())
       return false;
-    int fake_num = graph_size;
-    if (drone_id_ == sparse_id.back())
-    {
-      fake_num--;
-    }
-    if (fake_num > swarm_trajs_->size())
-    {
-      return false;
-    }
-    for (int i = 0, fake_id = 0; i < fake_num; i++)
-    {
-
-      if (i == sparse_id[fake_id] && swarm_trajs_->at(i).drone_id < 0 && sparse_id[fake_id] != drone_id_)
-      {
-        return false;
-      }
-
-      if (i == sparse_id[fake_id])
-      {
-        fake_id++;
-      }
-    }
     /********************************************************************************************************************/
     int debug_num = sparse_id.size();
     std::vector<int> adj_in_cline, adj_out_cline;
@@ -3294,14 +3225,9 @@ namespace ego_planner
 
     std::vector<Eigen::Vector3d> swarm_pos(sparse_id.size());
     std::vector<Eigen::Vector3d> graph_des_opt(sparse_id.size());
-    for (int i = 0, fake_id = 0; i < swarm_des_opt.size(); i++)
+    for (size_t i = 0; i < sparse_id.size(); i++)
     {
-
-      if (i == sparse_id[fake_id])
-      {
-        graph_des_opt[fake_id] = swarm_des_opt[i];
-        fake_id++;
-      }
+      graph_des_opt[i] = swarm_des_opt[sparse_id[i]];
     }
     SwarmGraph swarm_graph;
 
