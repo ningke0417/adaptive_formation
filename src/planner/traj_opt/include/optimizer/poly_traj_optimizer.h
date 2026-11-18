@@ -97,6 +97,7 @@ private:
   int piece_num_;        // poly traj piece numbers
   int iter_num_;         // iteration of the solver
   bool enable_fix_step_ = false;
+  double max_local_duration_ = 20.0;
 
   string result_fn_;
   fstream result_file_;
@@ -584,6 +585,21 @@ private:
   }
   void setDesiredFormation(int type, int id_drone) // 必须知晓队形中size个数
   {
+    bool fixed_members = false;
+    nh_.param("formation/fixed_members", fixed_members, false);
+    if (fixed_members)
+    {
+      sparse_id.resize(size_swarm);
+      for (int i = 0; i < size_swarm; ++i) sparse_id[i] = i;
+      std::vector<std::vector<int>> members(size_swarm, sparse_id);
+      adj_in_.clear(); adj_out_.clear(); swarm_des_all.clear();
+      group_in_advance(type, size_swarm, id_drone, members);
+      swarm_des_opt = swarm_des_;
+      graph_size = size_swarm;
+      clc_error_id = sparse_id;
+      id_in_cline = id_drone;
+      return;
+    }
     bool is_all = false;
     int num_form = size_swarm;
     if (is_all) {

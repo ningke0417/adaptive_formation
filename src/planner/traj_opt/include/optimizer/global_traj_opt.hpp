@@ -191,6 +191,13 @@ namespace global_traj
 
       std::cout << "after optimized: " << jerkOpt_.get_T1().transpose() << std::endl;
 
+      if (!std::isfinite(final_cost) || !jerkOpt_.get_T1().allFinite() ||
+          jerkOpt_.get_T1().minCoeff() <= 0.0 || jerkOpt_.get_T1().sum() > 60.0 ||
+          result < 0 && result != lbfgs_hzc::LBFGSERR_MAXIMUMITERATION &&
+          result != lbfgs_hzc::LBFGSERR_MAXIMUMLINESEARCH)
+        return false;
+      for (double t = 0.0; t <= jerkOpt_.get_T1().sum(); t += 0.1)
+        if (!jerkOpt_.getTraj().getPos(t).allFinite()) return false;
       posTraj_ = jerkOpt_.getTraj();
       radiusTraj_ = radiusOpt_.getTraj();
 
@@ -321,6 +328,13 @@ namespace global_traj
 
       std::cout << "after optimized: " << jerkOpt_.get_T1().transpose() << std::endl;
 
+      if (!std::isfinite(final_cost) || !jerkOpt_.get_T1().allFinite() ||
+          jerkOpt_.get_T1().minCoeff() <= 0.0 || jerkOpt_.get_T1().sum() > 60.0 ||
+          result < 0 && result != lbfgs_hzc::LBFGSERR_MAXIMUMITERATION &&
+          result != lbfgs_hzc::LBFGSERR_MAXIMUMLINESEARCH)
+        return false;
+      for (double t = 0.0; t <= jerkOpt_.get_T1().sum(); t += 0.1)
+        if (!jerkOpt_.getTraj().getPos(t).allFinite()) return false;
       posTraj_ = jerkOpt_.getTraj();
       radiusTraj_ = radiusOpt_.getTraj();
       lllTraj_ = lllOpt_.getTraj();

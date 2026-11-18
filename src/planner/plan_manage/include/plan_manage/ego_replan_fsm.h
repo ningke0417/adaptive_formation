@@ -51,6 +51,7 @@ namespace ego_planner
   {
 
   private:
+    bool fixed_members_ = false;
     /* ---------- flag ---------- */
     enum FSM_EXEC_STATE
     {

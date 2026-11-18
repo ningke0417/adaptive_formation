@@ -63,7 +63,7 @@ namespace ego_planner
     /************************************************************************************* */
     return path_R_;
   }
-  void EGOPlannerManager::opt_pathR(const Eigen::Matrix3d &start_leader_,
+  bool EGOPlannerManager::opt_pathR(const Eigen::Matrix3d &start_leader_,
                                     const Eigen::Matrix3d &end_leader_,
                                     const vector<double> &rrr_start_,
                                     const vector<double> &rrr_end_,
@@ -93,7 +93,7 @@ namespace ego_planner
     path_lll.resize(path_R_.size());
     for (size_t i = 0; i < path_R_.size(); i++)
     {
-      pathR_zy[i] = Eigen::Vector4d(path_R_[i][0], path_R_[i][1], 1.0, path_R_[i][3]);
+      pathR_zy[i] = Eigen::Vector4d(path_R_[i][0], path_R_[i][1], start_state(2, 0), path_R_[i][3]);
       path_lll[i] = path_R_[i][2];
     }
     path_R_.clear();
@@ -103,10 +103,11 @@ namespace ego_planner
     // cout << "tailRadius::::::"<<tailRadius(0,0) << endl;
     // cout << "headlll::::::"<<headlll(0,0) << endl;
     // cout << "taillll::::::"<<taillll(0,0) << endl;
-    ploy_traj_opt_->trajROpt.OptimizeGlobalTrajectory(start_state, end_state, headRadius, tailRadius, headlll, taillll, pathR_zy, path_lll);
+    if (!ploy_traj_opt_->trajROpt.OptimizeGlobalTrajectory(start_state, end_state, headRadius, tailRadius, headlll, taillll, pathR_zy, path_lll))
+      return false;
     time_opt_end = ros::Time::now();
     ploy_traj_opt_->leader_opt_ok();
-    return;
+    return true;
   }
   // void EGOPlannerManager::get_pathR_lll(const double &t, const Eigen::Vector4d &pos_R, const double &lll)
   // {
@@ -322,6 +323,9 @@ namespace ego_planner
         point_set.push_back(ctl_points.col(i));
       visualization_->displayInitPathListDebug(point_set, 0.2, 0);
 
+      if (!std::isfinite(traj.getTotalDuration()) || traj.getTotalDuration() <= 0.0 ||
+          traj.getTotalDuration() > 60.0)
+        return false;
       visualization_msgs::MarkerArray marker_array;
       visualization_msgs::MarkerArray marker_array2;
       double ttt = 0.0;

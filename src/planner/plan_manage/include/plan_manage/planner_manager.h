@@ -111,7 +111,7 @@ namespace ego_planner
                                            const vector<double> &lll_end_,
                                            const double &opt_time_now,
                                            double &opt_score);
-    void opt_pathR(const Eigen::Matrix3d &start_leader_,
+    bool opt_pathR(const Eigen::Matrix3d &start_leader_,
                    const Eigen::Matrix3d &end_leader_,
                    const vector<double> &rrr_start_,
                    const vector<double> &rrr_end_,

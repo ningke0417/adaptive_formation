@@ -32,6 +32,13 @@ namespace ego_planner
       return false;
     }
 
+    if (!iniState.allFinite() || !finState.allFinite() || !initInnerPts.allFinite() ||
+        !initT.allFinite() || initT.size() < 1 || initT.size() > 200 ||
+        initT.minCoeff() <= 0.0 || initT.sum() > max_local_duration_)
+    {
+      ROS_ERROR_THROTTLE(1.0, "Rejecting invalid or excessive local trajectory duration");
+      return false;
+    }
     t_now_ = ros::Time::now().toSec();
     piece_num_ = initT.size();
 
@@ -494,13 +501,18 @@ namespace ego_planner
     Eigen::VectorXd gradT(opt->piece_num_);
     double smoo_cost = 0, time_cost = 0;
 
+    if (!P.allFinite() || !T.allFinite() || T.minCoeff() <= 0.0 || T.sum() > opt->max_local_duration_)
+    {
+      gradP.setZero(); gradt.setZero();
+      return 1e20;
+    }
     opt->jerkOpt_.generate(P, T);
 
     // debug
     // if (opt->iter_num_ == 0)
     // cout << "[debug] init total: " << T.sum() << ", T: " << T.transpose() << endl;
 
-    if (T.sum() > 20.00)
+    if (T.sum() > opt->max_local_duration_)
     {
       gradP.setZero();
       gradt.setZero();
@@ -3177,7 +3189,7 @@ namespace ego_planner
       Eigen::Matrix<double, 1, 1> r_traj_ = radiusTraj_sub.getPos(t_iii);
       Eigen::Matrix<double, 1, 1> l_traj_ = lllTraj_sub.getPos(t_iii);
       Eigen::Vector3d pos_bias = r_traj_(0, 0) * Eigen::Vector3d(l_traj_(0, 0) * swarm_des_opt[id_in_group][0], (1.0 / l_traj_(0, 0)) * swarm_des_opt[id_in_group][1], 0.0);
-      Eigen::Vector3d pos_formation = Eigen::Vector3d(pos_traj_[0], pos_traj_[1], 1.0) + pos_bias;
+      Eigen::Vector3d pos_formation = pos_traj_ + pos_bias;
 
       Eigen::Vector3d dist_vec = pos - pos_formation;
       double dist = dist_vec.norm();
@@ -3297,7 +3309,7 @@ namespace ego_planner
         Eigen::Matrix<double, 1, 1> r_traj_ = radiusTraj_sub.getPos(t_prl);
         Eigen::Matrix<double, 1, 1> l_traj_ = lllTraj_sub.getPos(t_prl);
         Eigen::Vector3d pos_bias = r_traj_(0, 0) * Eigen::Vector3d(l_traj_(0, 0) * swarm_des_opt[id_in_group][0], (1.0 / l_traj_(0, 0)) * swarm_des_opt[id_in_group][1], 0.0);
-        Eigen::Vector3d pos_formation = Eigen::Vector3d(pos_traj_[0], pos_traj_[1], 1.0) + pos_bias;
+        Eigen::Vector3d pos_formation = pos_traj_ + pos_bias;
         // if (!intep_need && (start_pos - pos_formation).norm() >= 1.0 && (start_pos - pos_formation).norm() <= 4.5)
         // {
         //   Eigen::Vector3d intep_pos = start_pos + 0.9 * ((pos_formation - start_pos).normalized());
@@ -3318,7 +3330,7 @@ namespace ego_planner
       Eigen::Matrix<double, 1, 1> r_traj_ = radiusTraj_sub.getPos(t_prl);
       Eigen::Matrix<double, 1, 1> l_traj_ = lllTraj_sub.getPos(t_prl);
       Eigen::Vector3d pos_bias = r_traj_(0, 0) * Eigen::Vector3d(l_traj_(0, 0) * swarm_des_opt[id_in_group][0], (1.0 / l_traj_(0, 0)) * swarm_des_opt[id_in_group][1], 0.0);
-      Eigen::Vector3d pos_formation = Eigen::Vector3d(pos_traj_[0], pos_traj_[1], 1.0) + pos_bias;
+      Eigen::Vector3d pos_formation = pos_traj_ + pos_bias;
       end_pos = pos_formation;
       finState_.col(0) = end_pos;
     }
@@ -3399,6 +3411,8 @@ namespace ego_planner
     nh.param("optimization/swarm_gather_threshold", swarm_gather_threshold_, -1.0);
     nh.param("optimization/formation_type", formation_type_, -1);
     nh.param("size_swarm", size_swarm, -1);
+    nh.param("optimization/max_local_duration", max_local_duration_, 20.0);
+    max_local_duration_ = std::min(60.0, std::max(1.0, max_local_duration_));
     nh.param("max_graph_aware", max_graph_aware, 0.0);
     nh.param("vis_step", vis_step, 10);
     nh.param("vis_hor", vis_hor, 7.5);

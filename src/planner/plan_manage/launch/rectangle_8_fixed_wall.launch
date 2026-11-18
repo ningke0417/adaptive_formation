@@ -1,0 +1,248 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="rviz" default="true"/>
+  <arg name="auto_start" default="false"/>
+  <arg name="start_x" default="-6.0"/>
+  <arg name="goal_x" default="10.0"/>
+  <arg name="height" default="1.5"/>
+  <arg name="max_vel" default="0.5"/>
+  <arg name="map_size_x" default="24.0"/>
+  <arg name="map_size_y" default="14.0"/>
+  <arg name="map_size_z" default="3.0"/>
+  <arg name="wall_x" default="-2.0"/>
+  <arg name="wall_y" default="0.0"/>
+  <arg name="wall_size_x" default="0.5"/>
+  <arg name="wall_size_y" default="6.0"/>
+  <arg name="second_wall_x" default="6.5"/>
+  <arg name="second_wall_size_x" default="0.5"/>
+  <arg name="second_wall_total_size_y" default="10.0"/>
+  <arg name="second_wall_gap_size_y" default="1.8"/>
+  <include file="$(find swarm_bridge)/launch/bridge.launch">
+    <arg name="drone_id" value="999"/>
+    <arg name="broadcast_ip" value="127.0.0.255"/>
+  </include>
+  <node pkg="map_generator" type="fixed_split_merge_wall_map" name="fixed_split_merge_wall_map" output="log" required="true">
+    <remap from="global_cloud" to="/map_generator/global_cloud"/>
+    <param name="first_wall_x" value="$(arg wall_x)"/>
+    <param name="first_wall_y" value="$(arg wall_y)"/>
+    <param name="first_wall_size_x" value="$(arg wall_size_x)"/>
+    <param name="first_wall_size_y" value="$(arg wall_size_y)"/>
+    <param name="second_wall_x" value="$(arg second_wall_x)"/>
+    <param name="second_wall_y" value="$(arg wall_y)"/>
+    <param name="second_wall_size_x" value="$(arg second_wall_size_x)"/>
+    <param name="second_wall_total_size_y" value="$(arg second_wall_total_size_y)"/>
+    <param name="second_wall_gap_size_y" value="$(arg second_wall_gap_size_y)"/>
+    <param name="resolution" value="0.1"/>
+    <param name="ground_z" value="-0.1"/>
+    <param name="height" value="3.0"/>
+    <param name="safety_distance" value="0.2"/>
+    <param name="randomize" value="false"/>
+    <param name="random_seed" value="1"/>
+  </node>
+  <include file="$(find ego_planner)/launch/run_in_sim.launch">
+    <arg name="legacy_visualization" value="false"/>
+    <arg name="drone_id" value="0"/>
+    <arg name="init_x" value="$(eval float(arg('start_x')) + 0.5)"/>
+    <arg name="init_y" value="-1.5"/>
+    <arg name="init_z" value="$(arg height)"/>
+    <arg name="target_x" value="$(eval float(arg('goal_x')) + 0.5)"/>
+    <arg name="target_y" value="-1.5"/>
+    <arg name="target_z" value="$(arg height)"/>
+    <arg name="map_size_x" value="$(arg map_size_x)"/>
+    <arg name="map_size_y" value="$(arg map_size_y)"/>
+    <arg name="map_size_z" value="$(arg map_size_z)"/>
+    <arg name="max_vel" value="$(arg max_vel)"/>
+    <arg name="max_acc" value="3.0"/>
+    <arg name="planning_horizon" value="5.0"/>
+    <arg name="odom_topic" value="visual_slam/odom"/>
+    <arg name="swarm_formation_yaml" value="rectangle_8_fixed_wall"/>
+  </include>
+  <param name="/drone_0_pcl_render_node/sensing_horizon" value="5.0"/>
+  <param name="/drone_0_ego_planner_node/max_vel" value="$(arg max_vel)"/>
+  <param name="/drone_0_ego_planner_node/max_vel_local" value="$(arg max_vel)"/>
+  <param name="/drone_0_pcl_render_node/sensing_rate" value="10.0"/>
+  <include file="$(find ego_planner)/launch/run_in_sim.launch">
+    <arg name="legacy_visualization" value="false"/>
+    <arg name="drone_id" value="1"/>
+    <arg name="init_x" value="$(eval float(arg('start_x')) + 0.5)"/>
+    <arg name="init_y" value="-0.5"/>
+    <arg name="init_z" value="$(arg height)"/>
+    <arg name="target_x" value="$(eval float(arg('goal_x')) + 0.5)"/>
+    <arg name="target_y" value="-0.5"/>
+    <arg name="target_z" value="$(arg height)"/>
+    <arg name="map_size_x" value="$(arg map_size_x)"/>
+    <arg name="map_size_y" value="$(arg map_size_y)"/>
+    <arg name="map_size_z" value="$(arg map_size_z)"/>
+    <arg name="max_vel" value="$(arg max_vel)"/>
+    <arg name="max_acc" value="3.0"/>
+    <arg name="planning_horizon" value="5.0"/>
+    <arg name="odom_topic" value="visual_slam/odom"/>
+    <arg name="swarm_formation_yaml" value="rectangle_8_fixed_wall"/>
+  </include>
+  <param name="/drone_1_pcl_render_node/sensing_horizon" value="5.0"/>
+  <param name="/drone_1_ego_planner_node/max_vel" value="$(arg max_vel)"/>
+  <param name="/drone_1_ego_planner_node/max_vel_local" value="$(arg max_vel)"/>
+  <param name="/drone_1_pcl_render_node/sensing_rate" value="10.0"/>
+  <include file="$(find ego_planner)/launch/run_in_sim.launch">
+    <arg name="legacy_visualization" value="false"/>
+    <arg name="drone_id" value="2"/>
+    <arg name="init_x" value="$(eval float(arg('start_x')) + 0.5)"/>
+    <arg name="init_y" value="0.5"/>
+    <arg name="init_z" value="$(arg height)"/>
+    <arg name="target_x" value="$(eval float(arg('goal_x')) + 0.5)"/>
+    <arg name="target_y" value="0.5"/>
+    <arg name="target_z" value="$(arg height)"/>
+    <arg name="map_size_x" value="$(arg map_size_x)"/>
+    <arg name="map_size_y" value="$(arg map_size_y)"/>
+    <arg name="map_size_z" value="$(arg map_size_z)"/>
+    <arg name="max_vel" value="$(arg max_vel)"/>
+    <arg name="max_acc" value="3.0"/>
+    <arg name="planning_horizon" value="5.0"/>
+    <arg name="odom_topic" value="visual_slam/odom"/>
+    <arg name="swarm_formation_yaml" value="rectangle_8_fixed_wall"/>
+  </include>
+  <param name="/drone_2_pcl_render_node/sensing_horizon" value="5.0"/>
+  <param name="/drone_2_ego_planner_node/max_vel" value="$(arg max_vel)"/>
+  <param name="/drone_2_ego_planner_node/max_vel_local" value="$(arg max_vel)"/>
+  <param name="/drone_2_pcl_render_node/sensing_rate" value="10.0"/>
+  <include file="$(find ego_planner)/launch/run_in_sim.launch">
+    <arg name="legacy_visualization" value="false"/>
+    <arg name="drone_id" value="3"/>
+    <arg name="init_x" value="$(eval float(arg('start_x')) + 0.5)"/>
+    <arg name="init_y" value="1.5"/>
+    <arg name="init_z" value="$(arg height)"/>
+    <arg name="target_x" value="$(eval float(arg('goal_x')) + 0.5)"/>
+    <arg name="target_y" value="1.5"/>
+    <arg name="target_z" value="$(arg height)"/>
+    <arg name="map_size_x" value="$(arg map_size_x)"/>
+    <arg name="map_size_y" value="$(arg map_size_y)"/>
+    <arg name="map_size_z" value="$(arg map_size_z)"/>
+    <arg name="max_vel" value="$(arg max_vel)"/>
+    <arg name="max_acc" value="3.0"/>
+    <arg name="planning_horizon" value="5.0"/>
+    <arg name="odom_topic" value="visual_slam/odom"/>
+    <arg name="swarm_formation_yaml" value="rectangle_8_fixed_wall"/>
+  </include>
+  <param name="/drone_3_pcl_render_node/sensing_horizon" value="5.0"/>
+  <param name="/drone_3_ego_planner_node/max_vel" value="$(arg max_vel)"/>
+  <param name="/drone_3_ego_planner_node/max_vel_local" value="$(arg max_vel)"/>
+  <param name="/drone_3_pcl_render_node/sensing_rate" value="10.0"/>
+  <include file="$(find ego_planner)/launch/run_in_sim.launch">
+    <arg name="legacy_visualization" value="false"/>
+    <arg name="drone_id" value="4"/>
+    <arg name="init_x" value="$(eval float(arg('start_x')) + -0.5)"/>
+    <arg name="init_y" value="-1.5"/>
+    <arg name="init_z" value="$(arg height)"/>
+    <arg name="target_x" value="$(eval float(arg('goal_x')) + -0.5)"/>
+    <arg name="target_y" value="-1.5"/>
+    <arg name="target_z" value="$(arg height)"/>
+    <arg name="map_size_x" value="$(arg map_size_x)"/>
+    <arg name="map_size_y" value="$(arg map_size_y)"/>
+    <arg name="map_size_z" value="$(arg map_size_z)"/>
+    <arg name="max_vel" value="$(arg max_vel)"/>
+    <arg name="max_acc" value="3.0"/>
+    <arg name="planning_horizon" value="5.0"/>
+    <arg name="odom_topic" value="visual_slam/odom"/>
+    <arg name="swarm_formation_yaml" value="rectangle_8_fixed_wall"/>
+  </include>
+  <param name="/drone_4_pcl_render_node/sensing_horizon" value="5.0"/>
+  <param name="/drone_4_ego_planner_node/max_vel" value="$(arg max_vel)"/>
+  <param name="/drone_4_ego_planner_node/max_vel_local" value="$(arg max_vel)"/>
+  <param name="/drone_4_pcl_render_node/sensing_rate" value="10.0"/>
+  <include file="$(find ego_planner)/launch/run_in_sim.launch">
+    <arg name="legacy_visualization" value="false"/>
+    <arg name="drone_id" value="5"/>
+    <arg name="init_x" value="$(eval float(arg('start_x')) + -0.5)"/>
+    <arg name="init_y" value="-0.5"/>
+    <arg name="init_z" value="$(arg height)"/>
+    <arg name="target_x" value="$(eval float(arg('goal_x')) + -0.5)"/>
+    <arg name="target_y" value="-0.5"/>
+    <arg name="target_z" value="$(arg height)"/>
+    <arg name="map_size_x" value="$(arg map_size_x)"/>
+    <arg name="map_size_y" value="$(arg map_size_y)"/>
+    <arg name="map_size_z" value="$(arg map_size_z)"/>
+    <arg name="max_vel" value="$(arg max_vel)"/>
+    <arg name="max_acc" value="3.0"/>
+    <arg name="planning_horizon" value="5.0"/>
+    <arg name="odom_topic" value="visual_slam/odom"/>
+    <arg name="swarm_formation_yaml" value="rectangle_8_fixed_wall"/>
+  </include>
+  <param name="/drone_5_pcl_render_node/sensing_horizon" value="5.0"/>
+  <param name="/drone_5_ego_planner_node/max_vel" value="$(arg max_vel)"/>
+  <param name="/drone_5_ego_planner_node/max_vel_local" value="$(arg max_vel)"/>
+  <param name="/drone_5_pcl_render_node/sensing_rate" value="10.0"/>
+  <include file="$(find ego_planner)/launch/run_in_sim.launch">
+    <arg name="legacy_visualization" value="false"/>
+    <arg name="drone_id" value="6"/>
+    <arg name="init_x" value="$(eval float(arg('start_x')) + -0.5)"/>
+    <arg name="init_y" value="0.5"/>
+    <arg name="init_z" value="$(arg height)"/>
+    <arg name="target_x" value="$(eval float(arg('goal_x')) + -0.5)"/>
+    <arg name="target_y" value="0.5"/>
+    <arg name="target_z" value="$(arg height)"/>
+    <arg name="map_size_x" value="$(arg map_size_x)"/>
+    <arg name="map_size_y" value="$(arg map_size_y)"/>
+    <arg name="map_size_z" value="$(arg map_size_z)"/>
+    <arg name="max_vel" value="$(arg max_vel)"/>
+    <arg name="max_acc" value="3.0"/>
+    <arg name="planning_horizon" value="5.0"/>
+    <arg name="odom_topic" value="visual_slam/odom"/>
+    <arg name="swarm_formation_yaml" value="rectangle_8_fixed_wall"/>
+  </include>
+  <param name="/drone_6_pcl_render_node/sensing_horizon" value="5.0"/>
+  <param name="/drone_6_ego_planner_node/max_vel" value="$(arg max_vel)"/>
+  <param name="/drone_6_ego_planner_node/max_vel_local" value="$(arg max_vel)"/>
+  <param name="/drone_6_pcl_render_node/sensing_rate" value="10.0"/>
+  <include file="$(find ego_planner)/launch/run_in_sim.launch">
+    <arg name="legacy_visualization" value="false"/>
+    <arg name="drone_id" value="7"/>
+    <arg name="init_x" value="$(eval float(arg('start_x')) + -0.5)"/>
+    <arg name="init_y" value="1.5"/>
+    <arg name="init_z" value="$(arg height)"/>
+    <arg name="target_x" value="$(eval float(arg('goal_x')) + -0.5)"/>
+    <arg name="target_y" value="1.5"/>
+    <arg name="target_z" value="$(arg height)"/>
+    <arg name="map_size_x" value="$(arg map_size_x)"/>
+    <arg name="map_size_y" value="$(arg map_size_y)"/>
+    <arg name="map_size_z" value="$(arg map_size_z)"/>
+    <arg name="max_vel" value="$(arg max_vel)"/>
+    <arg name="max_acc" value="3.0"/>
+    <arg name="planning_horizon" value="5.0"/>
+    <arg name="odom_topic" value="visual_slam/odom"/>
+    <arg name="swarm_formation_yaml" value="rectangle_8_fixed_wall"/>
+  </include>
+  <param name="/drone_7_pcl_render_node/sensing_horizon" value="5.0"/>
+  <param name="/drone_7_ego_planner_node/max_vel" value="$(arg max_vel)"/>
+  <param name="/drone_7_ego_planner_node/max_vel_local" value="$(arg max_vel)"/>
+  <param name="/drone_7_pcl_render_node/sensing_rate" value="10.0"/>
+  <node pkg="ego_planner" type="fixed_wall_observer.py" name="fixed_wall_observer" output="log">
+    <param name="auto_start" value="$(arg auto_start)"/>
+    <param name="goal_x" value="$(arg goal_x)"/>
+    <param name="height" value="$(arg height)"/>
+  </node>
+  <node if="$(arg rviz)" pkg="rviz" type="rviz" name="rviz" args="-d $(find ego_planner)/launch/rectangle_8_fixed_wall.rviz"/>
+  <param name="/drone_0_pcl_render_node/full_360_sensing" value="true"/>
+  
+
+  <param name="/drone_1_pcl_render_node/full_360_sensing" value="true"/>
+  
+
+  <param name="/drone_2_pcl_render_node/full_360_sensing" value="true"/>
+  
+
+  <param name="/drone_3_pcl_render_node/full_360_sensing" value="true"/>
+  
+
+  <param name="/drone_4_pcl_render_node/full_360_sensing" value="true"/>
+  
+
+  <param name="/drone_5_pcl_render_node/full_360_sensing" value="true"/>
+  
+
+  <param name="/drone_6_pcl_render_node/full_360_sensing" value="true"/>
+  
+
+  <param name="/drone_7_pcl_render_node/full_360_sensing" value="true"/>
+  
+
+</launch>

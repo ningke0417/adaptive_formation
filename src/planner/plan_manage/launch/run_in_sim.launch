@@ -1,5 +1,9 @@
 <launch>
     <!-- size of map, change the size inflate x, y, z according to your application -->
+    <arg name="legacy_visualization" default="true"/>
+    <arg name="max_vel" default="1.0"/>
+    <arg name="max_acc" default="15.0"/>
+    <arg name="planning_horizon" default="7.5"/>
     <arg name="map_size_x"/>
     <arg name="map_size_y"/>
     <arg name="map_size_z"/>
@@ -76,10 +80,10 @@
         <arg name="fx" value="387.229248046875"/>
         <arg name="fy" value="387.229248046875"/>
         <!-- maximum velocity and acceleration the drone will reach -->
-        <arg name="max_vel" value="1.0" /><!--1.7*sqrt(3)-->
-        <arg name="max_acc" value="15.0" /><!--6.2*sqrt(3)-->
+        <arg name="max_vel" value="$(arg max_vel)" /><!--1.7*sqrt(3)-->
+        <arg name="max_acc" value="$(arg max_acc)" /><!--6.2*sqrt(3)-->
         <!--always set to 1.5 times grater than sensing horizen-->
-        <!-- <arg name="planning_horizon" value="7.5" />   -->
+        <!-- <arg name="planning_horizon" value="$(arg planning_horizon)" />   -->
         <arg name="planning_horizon" value="7.5" /> 
         <!-- 对local_goal，local_pose也有影响,特别是hybridAstar部分 -->
         <arg name="use_distinctive_trajs" value="false" />
@@ -120,6 +124,7 @@
 
     <!-- use simulator -->
     <include file="$(find ego_planner)/launch/simulator.xml">
+        <arg name="legacy_visualization" value="$(arg legacy_visualization)"/>
         <arg name="drone_id" value="$(arg drone_id)"/>
         <arg name="map_size_x_" value="$(arg map_size_x)"/>
         <arg name="map_size_y_" value="$(arg map_size_y)"/>

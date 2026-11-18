@@ -14,6 +14,7 @@ namespace ego_planner
   void EGOReplanFSM::init(ros::NodeHandle &nh)
   {
     nh_ = nh;
+    odom_acc_.setZero();
     current_wp_ = 0;
     exec_state_ = FSM_EXEC_STATE::INIT;
     central_state_ = CENTRAL_FSM_STATE::INIT_2;
@@ -42,6 +43,18 @@ namespace ego_planner
     nh.param("fsm/isuse_local_vel", isuse_local_vel_, false);
     nh.param("fsm/replan_trajectory_time", replan_trajectory_time_, 0.0);
     nh.param("size_swarm", size_swarm, -1);
+    nh.param("formation/fixed_members", fixed_members_, false);
+    if (fixed_members_)
+    {
+      std::vector<double> offsets;
+      if (size_swarm < 2 || size_swarm > 200 ||
+          !nh.getParam("formation/offsets", offsets) || offsets.size() != 3 * size_swarm)
+        throw std::runtime_error("formation/offsets must contain 3 * size_swarm values");
+      swarm_des_set_.resize(size_swarm);
+      for (int i = 0; i < size_swarm; ++i)
+        swarm_des_set_[i] = Eigen::Vector3d(offsets[3*i], offsets[3*i+1], offsets[3*i+2]);
+      leader_pos = swarm_des_set_[0];
+    }
     nh.param("vis_hor", vis_hor, 4.5);
 
     have_trigger_ = !flag_realworld_experiment_;
@@ -133,7 +146,7 @@ namespace ego_planner
     for (int i = 0; i < size_swarm; i++)
       swarm_des_id.push_back(i);
 
-    num_now_ = 20;
+    num_now_ = fixed_members_ ? size_swarm : 20;
     form_change = 0;
     assig_pos_.resize(size_swarm);
     assig_id.resize(num_now_);
@@ -1138,6 +1151,16 @@ double EGOReplanFSM::matchAndComputeErrorWithScale(
   }
   void EGOReplanFSM::errorCallback(const ros::TimerEvent &e)
   {
+    if (fixed_members_)
+    {
+      if (planner_manager_->traj_.swarm_traj.size() < size_swarm) return;
+      for (int i = 0; i < size_swarm; ++i)
+        if (i != planner_manager_->pp_.drone_id &&
+            (planner_manager_->traj_.swarm_traj[i].drone_id != i ||
+             planner_manager_->traj_.swarm_traj[i].traj.getPieceNum() == 0))
+          return;
+    }
+
     if(exec_state_ == EXEC_TRAJ && planner_manager_->traj_.swarm_traj.size()>=desired_points.size())
     {
     LocalTrajData *info = &planner_manager_->traj_.local_traj;
@@ -1208,6 +1231,7 @@ double EGOReplanFSM::matchAndComputeErrorWithScale(
     double dist_change = -5.0;
     /*********************************************************************TODO TODO********************************************************************* */
     
+    if (!fixed_members_)
     {
       if ((odom_pos_[0] + 32.5) > dist_change && form_change == 0)
       {
@@ -1579,6 +1603,11 @@ double EGOReplanFSM::matchAndComputeErrorWithScale(
         }
       }
 
+      if (fixed_members_)
+      {
+        end_leader_.col(0) -= leader_pos;
+        if (!flag_have_pathr) rrr_start_[0] = swarm_scale_;
+      }
       bool flag_opt_formation = opt_formation(start_leader_, end_leader_, rrr_start_, rrr_end_, lll_start_, lll_end_);
     }
 
@@ -1586,6 +1615,19 @@ double EGOReplanFSM::matchAndComputeErrorWithScale(
   }
   void EGOReplanFSM::centralFSMCallback(const ros::TimerEvent &e)
   {
+    // Local goals can arrive before any successful polynomial trajectory.
+    // A goal vector is not evidence that the corresponding peer trajectory exists.
+    if (fixed_members_)
+    {
+      if (!have_local_traj_ || planner_manager_->traj_.swarm_traj.size() < size_swarm)
+        return;
+      for (int i = 0; i < size_swarm; ++i)
+        if (i != planner_manager_->pp_.drone_id &&
+            (planner_manager_->traj_.swarm_traj[i].drone_id != i ||
+             planner_manager_->traj_.swarm_traj[i].traj.getPieceNum() == 0))
+          return;
+    }
+
     centra_timer_.stop(); // To avoid blockage
 
     static int fsm_num = 0;
@@ -1777,9 +1819,13 @@ double EGOReplanFSM::matchAndComputeErrorWithScale(
     bool success = false;
     // swarm_central_pos_(0) = msg->pose.position.x;
     // swarm_central_pos_(1) = msg->pose.position.y;
-    swarm_central_pos_(0) = 55.0;
-    swarm_central_pos_(1) = 0.0;
-    swarm_central_pos_(2) = 1.0;
+    if (!have_odom_ || !std::isfinite(msg->pose.position.x) ||
+        !std::isfinite(msg->pose.position.y) || !std::isfinite(msg->pose.position.z))
+      return;
+    if (fixed_members_)
+      swarm_central_pos_ = Eigen::Vector3d(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
+    else
+      swarm_central_pos_ = Eigen::Vector3d(55.0, 0.0, 1.0);
     //
     int id = assignment_(planner_manager_->pp_.drone_id);
 
@@ -1869,6 +1915,23 @@ double EGOReplanFSM::matchAndComputeErrorWithScale(
   // 接受广播的轨迹，按照id号存入缓存区planner_manager_->traj_.swarm_traj  traj_utils::pathR_lll
   void EGOReplanFSM::pathR_TrajCallback(const traj_utils::pathR_lllConstPtr &msg)
   {
+    double total_duration = 0.0;
+    for (double duration : msg->duration)
+    {
+      if (!std::isfinite(duration) || duration <= 0.0) return;
+      total_duration += duration;
+    }
+    const size_t coefficients = msg->duration.size() * 6;
+    if (msg->duration.empty() || msg->duration.size() > 200 || total_duration > 60.0 ||
+        msg->coef_x_pos.size() != coefficients || msg->coef_y_pos.size() != coefficients ||
+        msg->coef_z_pos.size() != coefficients || msg->coef_r.size() != coefficients ||
+        msg->coef_l.size() != coefficients || msg->ass_num != msg->assig_id.size() ||
+        msg->assi_x_pos.size() != size_swarm || msg->assi_y_pos.size() != size_swarm ||
+        msg->assi_z_pos.size() != size_swarm)
+      return;
+    for (const auto *values : {&msg->coef_x_pos, &msg->coef_y_pos, &msg->coef_z_pos, &msg->coef_r, &msg->coef_l})
+      for (double value : *values) if (!std::isfinite(value)) return;
+
     if (msg->drone_id < 0)
     {
       ROS_ERROR("drone_id < 0 is not allowed in a swarm system!");
@@ -2605,6 +2668,7 @@ double EGOReplanFSM::matchAndComputeErrorWithScale(
     double opt_score = 0.0;
     path_R_vis = planner_manager_->get_pathR(start_leader, end_leader, rrr_start, rrr_end, lll_start, lll_end, time_opt_now, opt_score);
 
+    if (path_R_vis.size() < 5) return false;
     visualization_msgs::MarkerArray marker_array;
     for (size_t i = 0; i < path_R_vis.size(); i += 8)
     {
@@ -2640,7 +2704,8 @@ double EGOReplanFSM::matchAndComputeErrorWithScale(
     ros::Time opt_end_time;
     traj_utils::pathR_lll pathR_msg;
 
-    planner_manager_->opt_pathR(start_leader, end_leader, rrr_start, rrr_end, lll_start, lll_end, opt_end_time);
+    if (!planner_manager_->opt_pathR(start_leader, end_leader, rrr_start, rrr_end, lll_start, lll_end, opt_end_time))
+      return false;
 
     double traj_lll_to = planner_manager_->ploy_traj_opt_->trajROpt.get_lll(0.1);
     bool follow_leader = false;

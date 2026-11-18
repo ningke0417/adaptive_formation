@@ -22,3 +22,13 @@ The `bags/` directory is excluded from this GitHub repository.
 Source code repository:
 
 https://github.com/yzhou-zju/adaptive_formation
+
+## Eight-UAV fixed-wall comparison
+
+八机 2×4 编队、与 criterion-validation 分布式场景相同的两道固定墙：
+
+```bash
+roslaunch ego_planner rectangle_8_fixed_wall.launch auto_start:=true
+```
+
+编译、RViz 触发、几何参数、资源保护和对比记录见 [八机固定墙说明](docs/eight_uav_fixed_wall.md)。

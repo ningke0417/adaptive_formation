@@ -27,6 +27,7 @@ ros::Subscriber global_map_sub, local_map_sub;
 
 ros::Timer local_sensing_timer;
 
+bool full_360_sensing = false;
 bool has_global_map(false);
 bool has_local_map(false);
 bool has_odom(false);
@@ -127,13 +128,13 @@ void renderSensedPoints(const ros::TimerEvent& event) {
       //   continue;
       if ((fabs(pt.z - _odom.pose.pose.position.z) / sensing_horizon) >
           tan(M_PI / 6.0))
-        continue; 
+        continue;
 
       Vector3d pt_vec(pt.x - _odom.pose.pose.position.x,
                       pt.y - _odom.pose.pose.position.y,
                       pt.z - _odom.pose.pose.position.z);
 
-      if (pt_vec.normalized().dot(yaw_vec) < 0.5) continue; 
+      if (!full_360_sensing && pt_vec.normalized().dot(yaw_vec) < 0.5) continue;
 
       _local_map.points.push_back(pt);
     }
@@ -160,6 +161,7 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "pcl_render");
   ros::NodeHandle nh("~");
 
+  nh.param("full_360_sensing", full_360_sensing, false);
   nh.getParam("sensing_horizon", sensing_horizon);
   nh.getParam("sensing_rate", sensing_rate);
   nh.getParam("estimation_rate", estimation_rate);
